@@ -30,7 +30,6 @@ SHL = 0b10101100
 SHR = 0b10101101
 CALL = 0b01010000
 RET = 0b00010001
-LD = 0b10000011
 
 
 class CPU:
@@ -47,10 +46,10 @@ class CPU:
         self.running = True  # sets this as a starter flag for the loop to run
         self.SP = 7
         self.reg[self.SP] = len(self.ram)-1
-        self.FL = 4
+        self.FL = ''
         # FL: BITS: 00000LGE Less-than, Greater-than, Equal if reg_a is one those to reg_b as 1 or if false 0
         # this is a flag '00000LGE' see LS8-spec.md line 27 on what to set for each: <, >, ==
-        self.reg[self.FL] = '00000000'
+        # self.reg[self.FL] = '00000000'
         # self.IM = 5  # for interrupt mask
         # self.reg[self.IM] = 'n/a'  # need to look into how to set this up
         # self.IS = 6  # for interrupt status
@@ -65,17 +64,11 @@ class CPU:
         self.branchtable[POP] = self.POP
         self.branchtable[CALL] = self.CALL
         self.branchtable[RET] = self.RET
-        self.branchtable[LD] = self.LD
         self.branchtable[ADD] = self.ADD
         self.branchtable[CMP] = self.CMP
         self.branchtable[JMP] = self.JMP
         self.branchtable[JEQ] = self.JEQ
         self.branchtable[JNE] = self.JNE
-
-
-# this gets me  a simplified binary number without the first zeros
-# may need to get to the shift part
-
 
     def get_number(self, list):
         add_up = 0
@@ -95,7 +88,6 @@ class CPU:
             add_up += 2
         if list[7] == '1':
             add_up += 1
-
         return bin(add_up)
 
     def load(self):
@@ -124,34 +116,24 @@ class CPU:
                     address += 1
 
     def ADD(self):
-        # print(f"ram: {self.ram}\n\nregisters: {self.reg}")
-        # print(f"the pc is at: {self.pc}")
         self.pc += 1
         reg_a = self.ram[self.pc]
         self.pc += 1
         reg_b = self.ram[self.pc]
-        # print(
-        #     f"reg_a value: {self.reg[reg_a]}, reg_b value: {self.reg[reg_b]}")
         val1 = self.reg[reg_a]
         val2 = self.reg[reg_b]
         new_value = val1 + val2
         self.reg[reg_a] = new_value
-        # print(f"after adding: {self.reg[reg_a]}")
         self.pc += 1
 
     def SUB(self):
         # this may need adjustment..
         # don't think binary handles neg numbers...
         # we'll see i guess
-        # print(f"printing self.reg: \n", self.reg)
-        # print(f"ram/memory: \n{self.ram}")
-        # print(f"pc current location: {self.pc}")
         self.pc += 1
         reg_a = self.ram[self.pc]
         self.pc += 1
         reg_b = self.ram[self.pc]
-        # print(f"reg_a: {reg_a}, reg_b: {reg_b}")
-        # print(f"the pc is at: {self.pc}")
         val1 = self.reg[self.ram[reg_a]]
         val2 = self.reg[self.ram[reg_b]]
         new_val = val1 - val2
@@ -159,33 +141,21 @@ class CPU:
         self.pc += 1
 
     def MUL(self):
-        # print(f"printing self.reg: \n", self.reg)
-        # print(f"ram/memory: \n{self.ram}")
-        # print(f"pc current location in MUL fn: {self.pc}")
         self.pc += 1
         reg_a = self.ram[self.pc]
         self.pc += 1
         reg_b = self.ram[self.pc]
-        # print(f"reg_a: {reg_a}, reg_b: {reg_b}")
-        # print(f"the pc is at: {self.pc}")
         val1 = self.reg[reg_a]
         val2 = self.reg[reg_b]
         new_val = val1 * val2
         self.reg[reg_a] = new_val
-        # print(f"new value in self.reg[reg_a]: {self.reg[reg_a]}")
         self.pc += 1
-        # print(f"new self.pc: {self.pc}")
 
     def DIV(self):
-        # print(f"printing self.reg: \n", self.reg)
-        # print(f"ram/memory: \n{self.ram}")
-        # print(f"pc current location: {self.pc}")
         self.pc += 1
         reg_a = self.ram[self.pc]
         self.pc += 1
         reg_b = self.ram[self.pc]
-        print(f"reg_a: {reg_a}, reg_b: {reg_b}")
-        print(f"the pc is at: {self.pc}")
         val1 = self.reg[reg_a]
         val2 = self.reg[reg_b]
         val1 /= val2
@@ -199,11 +169,8 @@ class CPU:
         print(value)
         value -= 1
         print(value)
-        self.reg[self.ram[reg_a]] = value
+        self.reg[reg_a] = value
         self.pc += 2
-
-        # else:
-        #     raise Exception("Unsupported ALU operation")
 
     def LDI(self):  # in run()
         # print(f" from LDI self.pc: {self.pc}")
@@ -261,11 +228,7 @@ class CPU:
         # when pushing to the stack need to move the pointer as it build down
         self.reg[self.SP] -= 1
         self.ram[self.reg[self.SP]] = self.pc+2
-        # print(
-        #     f"next location to come back to at RET: {self.ram[self.reg[self.SP]]}")
-        # read_ram() the value in next reg and set pc to the value
         register = self.ram[self.pc+1]
-        # print(f"register: {register}")
         self.pc = self.reg[register]
 
     def RET(self):
@@ -279,26 +242,26 @@ class CPU:
         # print(f"return_address: {return_address}")
         self.pc = return_address
 
-    def LD(self):
-        print(f"in the LD fn")
-
     def CMP(self):
         # print(f"inside CMP")
         value1 = self.reg[self.ram[self.pc + 1]]
         value2 = self.reg[self.ram[self.pc + 2]]
         # are they equal... it's all tests are asking for... don't get too complicated here
         if value1 == value2:
-            # print("true")
-            self.reg[4] = True
+            # self.reg[4] = True
+            # switded to internal reg and not of the r0-r7
+            self.FL = True
         else:
             # print('false')
-            self.reg[4] = False
+            # switded to internal reg and not of the r0-r7
+            self.FL = False
         self.pc += 3
 
     def JEQ(self):
         # print(f"inside of JEQ")
         # if true jump to address in r2
-        if self.reg[4] == True:
+        # if self.reg[4] == True:
+        if self.FL == True:
             # jump to next test
             self.pc = self.reg[self.ram[self.pc + 1]]
         else:
@@ -314,8 +277,7 @@ class CPU:
     def JNE(self):
         # print(f"inside the JNE")
         # looks at result of CMP
-        if self.reg[4] == False:
-            # print(f"its false")
+        if self.FL == False:
             self.pc = self.reg[self.ram[self.pc + 1]]
         else:
             self.pc += 2
